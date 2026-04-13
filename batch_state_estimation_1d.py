@@ -1,5 +1,3 @@
-# AER1513_Assignment1_Feiyang_Wu  (full script with Q1 stats & QQ plots)
-
 import os
 import warnings
 import numpy as np
@@ -10,7 +8,7 @@ from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 
 # ========= Config =========
-DATA_PATH = r"C:\Users\89286\Desktop\dataset1.mat"  # <-- 改成你的实际路径
+DATA_PATH = r"dataset1.mat" 
 FIG_DIR = "figures"
 os.makedirs(FIG_DIR, exist_ok=True)
 
@@ -48,7 +46,6 @@ def load_dataset(path):
 
     return t, x_true, v, y, T, r_var, v_var
 
-# ---- Q1 helpers: hist + QQ + stats ----
 def _gauss_curve(mu, std, x):
     if std <= 0:
         return np.zeros_like(x)
@@ -56,8 +53,8 @@ def _gauss_curve(mu, std, x):
 
 def plot_hist_and_stats(
     data, name, unit, path_prefix,
-    force_bins=None, force_range=None,  # <- 新增：强制 bin 数与横轴范围
-    y_as_pdf=True                       # 与作业图一致：PDF（不是百分比）
+    force_bins=None, force_range=None, 
+    y_as_pdf=True                       
 ):
     """
     Draw histogram+Gaussian fit and QQ plot; print μ,σ,σ². Return (μ,σ,σ²).
@@ -71,24 +68,21 @@ def plot_hist_and_stats(
 
     # Histogram + Gaussian fit
     plt.figure(figsize=(7,4))
-    # 与作业风格一致：20 bins + 固定横轴范围（若传入）
     hist_kwargs = dict(bins=(force_bins if force_bins else 20),
                        density=y_as_pdf)
     if force_range is not None:
         hist_kwargs["range"] = force_range
     plt.hist(data, alpha=0.9, color="navy", **hist_kwargs, label="Empirical")
 
-    # 拟合高斯曲线（与 PDF 同标度）
     if force_range is not None:
         xs = np.linspace(force_range[0], force_range[1], 400)
     else:
         xs = np.linspace(mu - 4*std, mu + 4*std, 400)
     plt.plot(xs, _gauss_curve(mu, std, xs), 'r-', lw=2, label="N(μ̂,σ̂)")
 
-    # 轴标签：作业图用“Frequency as Percentage of Time”，但它本质也是归一化密度曲线
-    # 这里保持 PDF，一致性更好；你也可以把下一行改成那句文字，仅影响标签不影响数值。
+
     plt.ylabel("PDF")
-    plt.xlabel(f"{name.split('(')[0].strip()} [{unit}]")  # 简化成“Range error [m] / V error [m/s]”
+    plt.xlabel(f"{name.split('(')[0].strip()} [{unit}]")  
     plt.title(f"Q1: {name}\nμ={mu:.6f} {unit}, σ={std:.6f} {unit}")
     plt.legend(); plt.tight_layout()
     plt.savefig(f"{path_prefix}_hist.png"); plt.close()
@@ -106,7 +100,7 @@ def analyze_Q1(t, x_true, v, y, T):
     """Compute & plot Q1 stats: measurement, speed, and process noise residuals."""
     # Measurement noise residuals (observation noise)
     er = y - x_true
-    # —— 和作业保持一致的直方图设置：bins=20, range=[-0.1, 0.1]
+    #bins=20, range=[-0.1, 0.1]
     mu_r, std_r, var_r = plot_hist_and_stats(
         er, "Range error", "m",
         os.path.join(FIG_DIR, "Q1_measurement"),
@@ -123,7 +117,7 @@ def analyze_Q1(t, x_true, v, y, T):
         force_bins=20, force_range=(-0.2, 0.2)
     )
 
-    # Process noise residuals（作业没有这张固定风格图，这里保持通用）
+    # Process noise residuals
     w = x_true[1:] - x_true[:-1] - T * v[1:]
     mu_w, std_w, var_w = plot_hist_and_stats(
         w, "Process noise residuals (w_k = x_k - x_{k-1} - T v_k)", "m",
@@ -162,7 +156,6 @@ def make_measure_mask(K, delta):
     mask[idxs] = True
     return mask, [i+1 for i in idxs]  # 1-based list for logging
 
-# ========= Q3/Q4: Build H (tridiagonal) and b =========
 def build_H_b(u, y, T, sigma_q2, sigma_r2, I_mask, x0=None):
     """
     Normal equations Hx=b for:
@@ -261,10 +254,8 @@ def main():
     t, x_true, v, y, T, r_var_file, v_var_file = load_dataset(DATA_PATH)
     K = t.size
 
-    # ---- Q1: full analysis with hist + QQ + stats (independent of file variances) ----
     q1_stats = analyze_Q1(t, x_true, v, y, T)
 
-    # For Q4/Q5 we still need σ_r², σ_v² (or from file if provided)
     if (r_var_file is None) or (v_var_file is None):
         sigma_q2, sigma_r2, sigma_v2, _, _ = estimate_noise_from_data(t, x_true, v, y, T)
         print("[Q1-used-for-Q4/5] estimated from data:")
@@ -278,7 +269,6 @@ def main():
         print("[Q1-used-for-Q4/5] variances from file:")
         print(f"   sigma_r^2 = {sigma_r2:.6e} m^2, sigma_v^2 = {sigma_v2:.6e} (m/s)^2, sigma_q^2 = {sigma_q2:.6e} m^2")
 
-    # ---- Q4: build H and spy (use a representative delta, e.g., 10) ----
     delta_for_spy = 10
     I_mask, _ = make_measure_mask(K, delta_for_spy)
     H, b = build_H_b(v, y, T, sigma_q2, sigma_r2, I_mask, x0=None)
@@ -298,7 +288,6 @@ def main():
     print("\n[DEBUG] Inspect last 5x5 block of H:")
     print(H[-5:, -5:].toarray())
 
-    # ---- Q5: four deltas (KF + RTS) ----
     deltas = [1, 10, 100, 1000]
     for delta in deltas:
         I_mask, meas_list = make_measure_mask(K, delta)
