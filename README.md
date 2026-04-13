@@ -1,24 +1,23 @@
-# Batch Pose Estimation with IMU and Stereo Measurements
+# 1D Batch State Estimation with Odometry and Range Measurements
 
-This repository implements a nonlinear batch state estimation pipeline for 3D pose estimation using IMU and stereo measurements.
+This repository implements a 1D batch state estimation pipeline using odometry and range measurements.
 
 ## Overview
-The project estimates the pose trajectory of a moving sensor platform by combining motion information from IMU measurements with stereo landmark observations. The estimator is formulated as a nonlinear least-squares problem and solved iteratively.
+The project estimates the position of a robot moving along a one-dimensional track. The estimator combines noisy odometry and range observations in a batch least-squares formulation. The implementation also includes uncertainty analysis, sparsity visualization, and RTS smoothing.
 
 ## Method
 The implementation includes:
-- SE(3) pose representation
-- IMU-based motion integration
-- Stereo landmark reprojection residuals
-- Batch nonlinear least-squares optimization
-- Levenberg-Marquardt style damping
-- Sliding-window estimation experiments
-- Position and rotation error visualization
+- Linear Gaussian motion and observation models
+- Batch least-squares formulation
+- Sparse tridiagonal system construction
+- RTS smoother for state estimation
+- Error histogram and uncertainty visualization
+- Sparsity pattern analysis of the normal equations
 
 ## Files
-- `batch_pose_imu_stereo.py`: main implementation
+- `batch_state_estimation_1d.py`: main implementation
 - `requirements.txt`: Python dependencies
-- `.gitignore`: excludes datasets, generated figures, and cache files
+- `.gitignore`: excludes datasets, figures, and cache files
 
 ## Requirements
 Install dependencies with:
@@ -28,11 +27,11 @@ pip install -r requirements.txt
 ```
 
 ## How to Run
-This script requires the dataset file `dataset3.mat`, which is not included in this repository.
+This script requires the dataset file `dataset1.mat`, which is not included in this repository.
 After preparing the dataset and updating the dataset path inside the script, run:
 
 ```bash
-python batch_pose_imu_stereo.py
+python batch_state_estimation_1d.py
 ```
 
 ## Notes
